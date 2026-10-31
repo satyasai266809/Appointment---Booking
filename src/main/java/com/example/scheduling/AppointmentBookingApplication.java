@@ -1,5 +1,8 @@
 package com.example.scheduling;
 
+import com.example.scheduling.repository.AppointmentRepository;
+import com.example.scheduling.repository.InMemoryAppointmentRepository;
+import com.example.scheduling.service.AppointmentService;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;

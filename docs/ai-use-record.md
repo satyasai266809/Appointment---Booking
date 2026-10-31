@@ -96,3 +96,48 @@ Added Spring Boot application wiring, an `AppointmentController` with booking an
 ### Verification evidence
 - Focused MockMvc controller tests passed after the explicit path-variable fix.
 - Full `mvn test`: 30 tests run, 0 failures, 0 errors, 0 skipped.
+
+## Activity 4: Layered Spring Boot package structure
+
+### Prompt
+> "leave it can you make it simple model and dto and repo and service and controller entire project spring boot strucuree"
+
+### AI response summary
+Kept the in-memory persistence choice and reorganized the Spring Boot code into `model`, `dto`, `repository`, `service`, and `controller` packages. The application bootstrap remains in the root package. Extracted HTTP request/response records from the controller into DTO files; booking rules and endpoint behavior remain unchanged.
+
+### Suggestion decisions
+
+| Suggestion | Decision | Reason / evidence |
+|-----------|----------|-------------------|
+| Use conventional packages by layer | Accepted | Makes each boundary easier to find without introducing extra infrastructure |
+| Keep persistence in memory and do not add JPA | Accepted | The user clarified "leave it" after the JPA discussion and requested package structure |
+| Keep service results separate from HTTP DTOs | Accepted | Prevents the service outcome types from depending on the controller transport layer |
+
+### Files and decisions informed
+Java classes under `src/main/java/com/example/scheduling/`, tests under matching package paths, and this design spec.
+
+### Verification evidence
+- `mvn clean test`: 30 tests run, 0 failures, 0 errors, 0 skipped.
+
+## Activity 4: Layered Spring Boot package structure
+
+### Prompt
+> "leave it can you make it simple model and dto and repo and service and controller entire project spring boot strucuree"
+
+### AI response summary
+Kept the in-memory persistence choice and reorganized the Spring Boot code into `model`, `dto`, `repository`, `service`, and `controller` packages. The application bootstrap remains in the root package. Extracted the HTTP request/response records from the controller into DTO files; booking and cancellation behavior and routes remain unchanged.
+
+### Suggestion decisions
+
+| Suggestion | Decision | Reason / evidence |
+|-----------|----------|-------------------|
+| Use conventional packages by layer | Accepted | Makes each boundary easier to find without introducing extra infrastructure |
+| Keep persistence in memory and do not add JPA | Accepted | User clarified "leave it" after the JPA discussion; this request was for project structure |
+| Keep service results separate from HTTP DTOs | Accepted | Avoids making service outcome types depend on the controller transport layer |
+
+### Files and decisions informed
+Java classes under `src/main/java/com/example/scheduling/`, service and controller tests under matching test packages, and this design spec.
+
+### Verification evidence
+- The first `mvn test` run encountered stale compiled classes from the previous package paths in `target/` and failed test discovery.
+- `mvn clean test` removed stale output and passed all 30 tests (0 failures, 0 errors, 0 skipped).

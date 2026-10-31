@@ -1,5 +1,7 @@
-package com.example.scheduling;
+package com.example.scheduling.service;
 
+import com.example.scheduling.model.Appointment;
+import com.example.scheduling.repository.AppointmentRepository;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Optional;
@@ -39,7 +41,7 @@ public class AppointmentService {
         lock.lock();
         try {
             Optional<Appointment> clash = repository.findActiveByProvider(providerId).stream()
-                    .filter(a -> a.overlaps(start, end))
+                    .filter(appointment -> appointment.overlaps(start, end))
                     .findFirst();
             if (clash.isPresent()) {
                 return BookingResult.conflict(clash.get());

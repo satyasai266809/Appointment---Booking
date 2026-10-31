@@ -1,5 +1,11 @@
-package com.example.scheduling;
+package com.example.scheduling.controller;
 
+import com.example.scheduling.dto.BookingRequest;
+import com.example.scheduling.dto.BookingResponse;
+import com.example.scheduling.dto.CancellationResponse;
+import com.example.scheduling.service.AppointmentService;
+import com.example.scheduling.service.BookingResult;
+import com.example.scheduling.service.CancelResult;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -22,7 +28,8 @@ public class AppointmentController {
     @PostMapping
     public ResponseEntity<BookingResponse> book(@RequestBody BookingRequest request) {
         BookingResult result = service.book(request.providerId(), request.startUtc(), request.endUtc());
-        BookingResponse response = new BookingResponse(result.status(), result.appointment(), result.message());
+        BookingResponse response = new BookingResponse(
+                result.status().name(), result.appointment(), result.message());
 
         HttpStatus status = switch (result.status()) {
             case BOOKED -> HttpStatus.CREATED;
@@ -35,7 +42,7 @@ public class AppointmentController {
     @DeleteMapping("/{appointmentId}")
     public ResponseEntity<CancellationResponse> cancel(@PathVariable("appointmentId") String appointmentId) {
         CancelResult result = service.cancel(appointmentId);
-        CancellationResponse response = new CancellationResponse(result.status(), result.message());
+        CancellationResponse response = new CancellationResponse(result.status().name(), result.message());
 
         HttpStatus status = switch (result.status()) {
             case CANCELLED -> HttpStatus.OK;
@@ -45,10 +52,4 @@ public class AppointmentController {
         };
         return ResponseEntity.status(status).body(response);
     }
-
-    public record BookingRequest(String providerId, String startUtc, String endUtc) { }
-
-    public record BookingResponse(BookingResult.Status status, Appointment appointment, String message) { }
-
-    public record CancellationResponse(CancelResult.Status status, String message) { }
 }

@@ -1,5 +1,6 @@
-package com.example.scheduling;
+package com.example.scheduling.repository;
 
+import com.example.scheduling.model.Appointment;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;

@@ -1,4 +1,4 @@
-package com.example.scheduling;
+package com.example.scheduling.service;
 
 public record CancelResult(Status status, String message) {
 

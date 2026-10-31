@@ -1,4 +1,6 @@
-package com.example.scheduling;
+package com.example.scheduling.service;
+
+import com.example.scheduling.model.Appointment;
 
 public record BookingResult(Status status, Appointment appointment, String message) {
 

@@ -8,18 +8,24 @@ deployment, external database, time zones other than UTC.
 
 ```
 caller -> AppointmentController (HTTP mapping)
-              -> AppointmentService (validation, invariant, locking)
-              -> AppointmentRepository (port) -> InMemoryAppointmentRepository
+caller -> controller.AppointmentController
+caller -> controller.AppointmentController
+              -> service.AppointmentService
+              -> repository.AppointmentRepository -> repository.InMemoryAppointmentRepository
+service.AppointmentService -> model.Appointment
+controller.AppointmentController -> dto.BookingRequest / dto.BookingResponse / dto.CancellationResponse
 ```
 
 | Type | Responsibility |
 |------|----------------|
-| `AppointmentController` | Maps REST requests and service results to HTTP requests, response bodies, and status codes |
-| `AppointmentService` | Validates input, enforces the invariant, serialises check-then-write |
-| `AppointmentRepository` | Persistence port: `save`, `findById`, `findActiveByProvider`, `findAll` |
-| `InMemoryAppointmentRepository` | Map-backed implementation; not thread-safe by itself |
-| `Appointment` | Immutable record: id, providerId, start, end, state (`ACTIVE`/`CANCELLED`); overlap rule |
-| `BookingResult` / `CancelResult` | Outcome status plus message; no exceptions for expected rejections |
+| `AppointmentBookingApplication` | Starts Spring Boot and wires repository and service beans |
+| `controller.AppointmentController` | Maps REST requests and service results to response DTOs and HTTP status codes |
+| `dto` package | HTTP request/response records; keeps transport payloads separate from service logic |
+| `service.AppointmentService` | Validates input, enforces the invariant, serialises check-then-write |
+| `service.BookingResult` / `service.CancelResult` | Internal service outcomes for expected business results |
+| `repository.AppointmentRepository` | Persistence port: `save`, `findById`, `findActiveByProvider`, `findAll` |
+| `repository.InMemoryAppointmentRepository` | Map-backed implementation; not thread-safe by itself |
+| `model.Appointment` | Immutable record: id, providerId, start, end, state (`ACTIVE`/`CANCELLED`); overlap rule |
 
 ## 2. Data and API design
 
@@ -69,3 +75,4 @@ format); positive duration only; past times allowed; ids server-generated. See R
 ## 7. Testing strategy
 
 JUnit 5 tests cover the service rules and HTTP adapter. Service coverage includes successful booking; five overlap shapes (identical, overlap start, overlap end, contained, containing); adjacency on both sides; different providers; cancel then rebook; cancel missing and twice; missing identifiers; invalid timestamps and non-positive durations with the store verified unchanged; and two concurrency tests (32 threads on one slot yield exactly one winner; 40 staggered overlapping requests leave no overlapping active pair). MockMvc tests verify HTTP status mapping and booking, conflict, adjacency, cancellation, rebooking, invalid input, and missing/repeated cancellation. Mutation check: with the lock disabled the concurrency tests fail (see AI record).
+JUnit 5 tests cover service rules and the HTTP adapter. `service.AppointmentServiceTest` covers successful booking; five overlap shapes; adjacency on both sides; different providers; cancellation and rebooking; missing and repeated cancellation; missing identifiers; invalid timestamps and non-positive durations with unchanged storage; and two concurrency tests. `controller.AppointmentControllerTest` uses MockMvc to verify HTTP status mapping and booking, conflict, adjacency, cancellation, rebooking, invalid input, and missing/repeated cancellation. Mutation check: with the lock disabled the concurrency tests fail (see AI record).

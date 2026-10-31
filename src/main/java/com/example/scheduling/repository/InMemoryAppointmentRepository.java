@@ -1,5 +1,6 @@
-package com.example.scheduling;
+package com.example.scheduling.repository;
 
+import com.example.scheduling.model.Appointment;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,7 +24,7 @@ public class InMemoryAppointmentRepository implements AppointmentRepository {
     @Override
     public List<Appointment> findActiveByProvider(String providerId) {
         return byId.values().stream()
-                .filter(a -> a.providerId().equals(providerId) && a.isActive())
+                .filter(appointment -> appointment.providerId().equals(providerId) && appointment.isActive())
                 .toList();
     }
 
