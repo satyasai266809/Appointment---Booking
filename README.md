@@ -1,22 +1,33 @@
 # Appointment Booking (conflict-safe booking and cancellation)
 
-A small in-memory service slice (no starter project was supplied). Java 21, Maven, JUnit 5.
+A small Spring Boot REST service for conflict-safe appointment booking and cancellation. Java 21, Maven, JUnit 5.
 
 ## Setup and run
 
 Requirements: JDK 21+ and Maven 3.9+.
 
 ```bash
-mvn test        # compile and run all 28 tests
+mvn test
+mvn spring-boot:run
 ```
 
-Usage (see `AppointmentServiceTest` for examples):
+The service listens on `http://localhost:8080`.
 
-```java
-var service = new AppointmentService(new InMemoryAppointmentRepository());
-BookingResult r = service.book("dr-a", "2030-01-01T09:00:00Z", "2030-01-01T10:00:00Z");
-CancelResult  c = service.cancel(r.appointment().id());
+Book an appointment:
+
+```bash
+curl -i -X POST http://localhost:8080/api/appointments \
+  -H 'Content-Type: application/json' \
+  -d '{"providerId":"dr-a","startUtc":"2030-01-01T09:00:00Z","endUtc":"2030-01-01T10:00:00Z"}'
 ```
+
+Cancel using the appointment ID returned in the booking response:
+
+```bash
+curl -i -X DELETE http://localhost:8080/api/appointments/<appointment-id>
+```
+
+`POST /api/appointments` returns `201 Created` when booked, `409 Conflict` for an overlap, and `400 Bad Request` for invalid input. `DELETE /api/appointments/{appointmentId}` returns `200 OK`, `404 Not Found`, `409 Conflict` for an already-cancelled appointment, or `400 Bad Request` for invalid input.
 
 ## Booking invariant
 

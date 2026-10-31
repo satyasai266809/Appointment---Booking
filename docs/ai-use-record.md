@@ -70,4 +70,29 @@ and documents. All criteria were met; it reported four minor gaps.
 `.gitignore`, `AppointmentServiceTest.java`, `README.md`, this file.
 
 ### Verification evidence
-- `mvn test` re-run after the changes (see final run in the submission notes: 28 tests, 0 failures).
+- `mvn test` re-run after the changes (28 tests, 0 failures).
+
+## Activity 3: REST controller addition (GitHub Copilot agent in VS Code)
+
+### Prompt
+> "add controller class as well"
+
+After clarification, the user selected a Spring REST controller with HTTP endpoints.
+
+### AI response summary
+Added Spring Boot application wiring, an `AppointmentController` with booking and cancellation routes, HTTP status mapping, and MockMvc tests. The controller delegates to `AppointmentService`, keeping the booking invariant in the existing service layer.
+
+### Suggestion decisions
+
+| Suggestion | Decision | Reason / evidence |
+|-----------|----------|-------------------|
+| Use Spring Boot REST rather than a plain Java facade | Accepted | User selected real HTTP endpoints for the controller |
+| Map booking/cancellation outcomes to HTTP status codes | Accepted | Gives callers standard HTTP semantics while preserving existing result statuses in JSON |
+| Pass the path-variable name explicitly | Edited | Initial MockMvc run exposed that compiler parameter metadata was unavailable; explicit `@PathVariable("appointmentId")` fixes binding without depending on compiler flags |
+
+### Files and decisions informed
+`pom.xml`, `AppointmentBookingApplication.java`, `AppointmentController.java`, `AppointmentControllerTest.java`, README, design spec, this record, and the external end-to-end walkthrough.
+
+### Verification evidence
+- Focused MockMvc controller tests passed after the explicit path-variable fix.
+- Full `mvn test`: 30 tests run, 0 failures, 0 errors, 0 skipped.

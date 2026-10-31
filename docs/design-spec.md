@@ -7,12 +7,14 @@ Out of scope: UI, authentication, notifications, recurring availability, calenda
 deployment, external database, time zones other than UTC.
 
 ```
-caller -> AppointmentService (validation, invariant, locking)
+caller -> AppointmentController (HTTP mapping)
+              -> AppointmentService (validation, invariant, locking)
               -> AppointmentRepository (port) -> InMemoryAppointmentRepository
 ```
 
 | Type | Responsibility |
 |------|----------------|
+| `AppointmentController` | Maps REST requests and service results to HTTP requests, response bodies, and status codes |
 | `AppointmentService` | Validates input, enforces the invariant, serialises check-then-write |
 | `AppointmentRepository` | Persistence port: `save`, `findById`, `findActiveByProvider`, `findAll` |
 | `InMemoryAppointmentRepository` | Map-backed implementation; not thread-safe by itself |
@@ -24,9 +26,11 @@ caller -> AppointmentService (validation, invariant, locking)
 Appointment: `id` (UUID, server-generated), `providerId`, `start`/`end` (`Instant`, UTC), `state`.
 
 ```
-book(providerId, startUtc, endUtc) -> BookingResult{BOOKED | CONFLICT | INVALID_INPUT}
-cancel(appointmentId)              -> CancelResult{CANCELLED | NOT_FOUND | ALREADY_CANCELLED | INVALID_INPUT}
+POST   /api/appointments                 -> 201 BOOKED | 409 CONFLICT | 400 INVALID_INPUT
+DELETE /api/appointments/{appointmentId} -> 200 CANCELLED | 404 NOT_FOUND | 409 ALREADY_CANCELLED | 400 INVALID_INPUT
 ```
+
+The controller delegates to `AppointmentService`; it does not implement booking rules. Booking responses contain status, appointment (when booked), and message. Cancellation responses contain status and message.
 
 Validation (before touching the store): non-blank provider id; both timestamps non-blank, end in `Z`,
 parseable as `Instant`; `end > start`. Any failure returns `INVALID_INPUT` with no state change.
@@ -64,9 +68,4 @@ format); positive duration only; past times allowed; ids server-generated. See R
 
 ## 7. Testing strategy
 
-JUnit 5, 28 test cases: successful booking; five overlap shapes (identical, overlap start, overlap end,
-contained, containing); adjacency on both sides; different providers; cancel then rebook; cancel missing
-and twice; missing identifiers; invalid timestamps and non-positive durations with the store verified
-unchanged; two concurrency tests (32 threads on one slot yield exactly one winner; 40 staggered
-overlapping requests leave no overlapping active pair). Mutation check: with the lock disabled the
-concurrency tests fail (see AI record).
+JUnit 5 tests cover the service rules and HTTP adapter. Service coverage includes successful booking; five overlap shapes (identical, overlap start, overlap end, contained, containing); adjacency on both sides; different providers; cancel then rebook; cancel missing and twice; missing identifiers; invalid timestamps and non-positive durations with the store verified unchanged; and two concurrency tests (32 threads on one slot yield exactly one winner; 40 staggered overlapping requests leave no overlapping active pair). MockMvc tests verify HTTP status mapping and booking, conflict, adjacency, cancellation, rebooking, invalid input, and missing/repeated cancellation. Mutation check: with the lock disabled the concurrency tests fail (see AI record).
