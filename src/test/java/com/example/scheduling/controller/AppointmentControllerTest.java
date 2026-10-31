@@ -1,17 +1,21 @@
 package com.example.scheduling.controller;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.scheduling.dto.ApiErrorResponse;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -70,7 +74,8 @@ class AppointmentControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(bookingRequest(" ", START, END)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value("INVALID_INPUT"));
+                .andExpect(jsonPath("$.status").value("INVALID_INPUT"))
+                .andExpect(jsonPath("$.errors.providerId").exists());
 
         mockMvc.perform(delete("/api/appointments/{appointmentId}", "does-not-exist"))
                 .andExpect(status().isNotFound())
@@ -91,6 +96,28 @@ class AppointmentControllerTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value("ALREADY_CANCELLED"));
     }
+
+        @Test
+        void mapsMalformedJsonToStandardErrorResponse() throws Exception {
+                mockMvc.perform(post("/api/appointments")
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content("{not-json"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.status").value("INVALID_INPUT"))
+                                .andExpect(jsonPath("$.message").value("Request body is missing or malformed"));
+        }
+
+        @Test
+        void mapsUnexpectedExceptionToGenericServerError() {
+                var response = new ApiExceptionHandler()
+                                .handleUnexpected(new IllegalStateException("internal details"));
+
+                assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+                ApiErrorResponse body = response.getBody();
+                assertNotNull(body);
+                assertEquals("INTERNAL_ERROR", body.status());
+                assertEquals("An unexpected error occurred", body.message());
+        }
 
     private String bookingRequest(String providerId, String startUtc, String endUtc) throws Exception {
         return objectMapper.writeValueAsString(Map.of(

@@ -6,6 +6,7 @@ import com.example.scheduling.dto.CancellationResponse;
 import com.example.scheduling.service.AppointmentService;
 import com.example.scheduling.service.BookingResult;
 import com.example.scheduling.service.CancelResult;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -26,7 +27,7 @@ public class AppointmentController {
     }
 
     @PostMapping
-    public ResponseEntity<BookingResponse> book(@RequestBody BookingRequest request) {
+    public ResponseEntity<BookingResponse> book(@Valid @RequestBody BookingRequest request) {
         BookingResult result = service.book(request.providerId(), request.startUtc(), request.endUtc());
         BookingResponse response = new BookingResponse(
                 result.status().name(), result.appointment(), result.message());

@@ -43,6 +43,43 @@ The layers have focused responsibilities:
 
 The controller depends on the service, and the service depends on the repository interface. The business rule is not duplicated in the controller.
 
+### Architecture and Request Flows
+
+```mermaid
+flowchart LR
+  Client["API caller"] --> Controller["AppointmentController<br/>HTTP mapping"]
+  Controller -->|"valid request"| Service["AppointmentService<br/>business rules and lock"]
+  Controller -->|"invalid DTO or malformed JSON"| Advice["ApiExceptionHandler<br/>standard error response"]
+  Service --> Repository["AppointmentRepository<br/>storage contract"]
+  Repository --> Memory["InMemoryAppointmentRepository<br/>ID map and active-provider index"]
+  Service -->|"unexpected exception"| Advice
+```
+
+```mermaid
+flowchart TD
+  A["POST /api/appointments"] --> B["Deserialize and validate DTO"]
+  B -->|"invalid fields or JSON"| C["400 INVALID_INPUT"]
+  B -->|"valid DTO"| D["Validate UTC timestamps and interval"]
+  D -->|"invalid business input"| C
+  D --> E["Acquire service lock"]
+  E --> F["Load active appointments for provider from index"]
+  F --> G{"Any half-open interval overlap?"}
+  G -->|"yes"| H["409 CONFLICT"]
+  G -->|"no"| I["Create and save ACTIVE appointment"]
+  I --> J["201 CREATED"]
+```
+
+```mermaid
+flowchart TD
+  A["DELETE /api/appointments/{id}"] --> B["Validate ID and acquire service lock"]
+  B --> C{"Appointment found?"}
+  C -->|"no"| D["404 NOT_FOUND"]
+  C -->|"already cancelled"| E["409 ALREADY_CANCELLED"]
+  C -->|"active"| F["Save CANCELLED state"]
+  F --> G["Remove from active-provider index"]
+  G --> H["200 CANCELLED"]
+```
+
 ## 3. Application Startup and Dependency Wiring
 
 The process starts in `AppointmentBookingApplication.main`:
@@ -71,7 +108,7 @@ Content-Type: application/json
 
 ### Controller
 
-`AppointmentController.book` receives a `BookingRequest` DTO, calls `AppointmentService.book`, then maps the service status to an HTTP status:
+`AppointmentController.book` receives a `BookingRequest` DTO. Spring validates its required and maximum-length fields before the controller calls `AppointmentService.book`; the controller then maps the service status to an HTTP status:
 
 | Service result | HTTP status |
 |---|---|
@@ -102,6 +139,8 @@ existing.start.isBefore(requested.end)
 ```
 
 This means the intervals overlap only when each starts before the other ends. Equal endpoints are therefore adjacent, not a conflict. The repository query filters out other providers and cancelled appointments before this comparison.
+
+The provider-keyed index avoids scanning appointments belonging to every provider. The overlap check remains linear in the active appointments for the requested provider, and the global service lock still serializes operations across providers.
 
 If an overlap exists, the service returns `CONFLICT` without saving. Otherwise, it creates an `ACTIVE` appointment with a UUID, saves it through the repository, and returns `BOOKED`. A `finally` block releases the lock on every path.
 
@@ -176,4 +215,6 @@ mvn spring-boot:run
 - Data is held in memory and is lost on restart.
 - One global lock serializes operations for all providers.
 - There is no authentication or authorization in this bounded service.
+- Request DTO constraints reject blank and oversized fields. `ApiExceptionHandler` returns consistent responses for invalid request bodies and unexpected failures without exposing exception details to callers.
+- The provider index is an in-memory optimization only; a multi-instance deployment still needs database-backed consistency and authorization appropriate to its callers.
 - JPA and database persistence are not included; the repository interface is the boundary where a later implementation can be added.

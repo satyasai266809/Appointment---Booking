@@ -78,12 +78,12 @@ public class AppointmentService {
 
     private static Instant parseUtc(String value) {
         if (isBlank(value) || !value.endsWith("Z")) {
-            throw new IllegalArgumentException("timestamp must be an ISO-8601 UTC instant ending in 'Z': " + value);
+            throw new IllegalArgumentException("timestamp must be an ISO-8601 UTC instant ending in 'Z'");
         }
         try {
             return Instant.parse(value);
         } catch (DateTimeParseException e) {
-            throw new IllegalArgumentException("invalid timestamp: " + value);
+            throw new IllegalArgumentException("invalid timestamp");
         }
     }
 

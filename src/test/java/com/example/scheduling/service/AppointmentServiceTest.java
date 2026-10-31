@@ -90,6 +90,8 @@ class AppointmentServiceTest {
         Appointment first = service.book("dr-a", T09, T10).appointment();
 
         assertEquals(CancelResult.Status.CANCELLED, service.cancel(first.id()).status());
+        assertTrue(repository.findActiveByProvider("dr-a").isEmpty());
+        assertEquals(1, repository.findAll().size());
 
         assertTrue(service.book("dr-a", T09, T10).isBooked());
     }
